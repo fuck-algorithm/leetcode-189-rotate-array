@@ -1,0 +1,28 @@
+.container {
+  flex: 1;
+  position: relative;
+  background: var(--bg-primary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.svg {
+  display: block;
+  cursor: grab;
+}
+
+.svg:active {
+  cursor: grabbing;
+}
+
+.hint {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  right: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
