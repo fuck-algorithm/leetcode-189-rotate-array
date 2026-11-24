@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import wechatQR from '../../assets/images/wechat-qr.png';
 import styles from './WeChatFloat.module.css';
 
 export const WeChatFloat: React.FC = () => {
@@ -21,7 +20,7 @@ export const WeChatFloat: React.FC = () => {
       {isHovered && (
         <div className={styles.popup}>
           <div className={styles.popupContent}>
-            <img src={wechatQR} alt="微信二维码" className={styles.qrCode} />
+            <img src={`${import.meta.env.BASE_URL}assets/qrcode-community.png`} alt="微信二维码" className={styles.qrCode} />
             <p className={styles.hint}>
               微信扫码发送 <strong>"leetcode"</strong>
               <br />

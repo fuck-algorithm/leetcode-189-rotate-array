@@ -21,7 +21,7 @@ const DEFAULT_DATA: InputData = {
 function App() {
   const [inputData, setInputData] = useState<InputData>(DEFAULT_DATA);
   const [currentSolutionId, setCurrentSolutionId] = useState(solutions[0].id);
-  const [language, setLanguage] = useState<ProgrammingLanguage>('javascript');
+  const [language, setLanguage] = useState<ProgrammingLanguage>('java');
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);

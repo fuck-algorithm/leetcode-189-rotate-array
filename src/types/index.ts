@@ -1,6 +1,11 @@
 // 算法步骤类型
+export type StepOperation = 'init' | 'read' | 'compare' | 'swap' | 'move' | 'copy' | 'done';
+
 export interface AlgorithmStep {
   id: number;
+  operation?: StepOperation;
+  narration?: string;
+  anchorIds?: string[];
   description: string;
   // 代码行高亮 - 支持多语言
   codeLines: {

@@ -47,7 +47,7 @@ export const saveLanguagePreference = async (language: ProgrammingLanguage): Pro
 export const getLanguagePreference = async (): Promise<ProgrammingLanguage> => {
   const db = await getDB();
   const result = await db.get('settings', 'language');
-  return (result?.value as ProgrammingLanguage) || 'javascript';
+  return (result?.value as ProgrammingLanguage) || 'java';
 };
 
 // 保存播放速度

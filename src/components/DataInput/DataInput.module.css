@@ -1,5 +1,7 @@
 .container {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 0 12px;
+  min-height: 38px;
+  flex-wrap: wrap;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
@@ -8,8 +10,10 @@
 .inputRow {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  height: 32px;
+  min-height: 32px;
 }
 
 .inputGroup {
@@ -19,25 +23,29 @@
 }
 
 .label {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-secondary);
   font-family: var(--font-mono);
 }
 
 .input {
-  width: 280px;
+  width: 240px;
+  height: 28px;
+  padding: 4px 8px;
   font-family: var(--font-mono);
   font-size: 13px;
 }
 
 .kInput {
-  width: 80px;
+  width: 64px;
+  height: 28px;
+  padding: 4px 8px;
   font-family: var(--font-mono);
   font-size: 13px;
 }
 
 .applyBtn {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 4px 8px;
   background: var(--primary-color);
   color: white;
   border-radius: var(--border-radius);
@@ -50,7 +58,7 @@
 }
 
 .randomBtn {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 4px 8px;
   background: var(--secondary-color);
   color: white;
   border-radius: var(--border-radius);
@@ -65,8 +73,19 @@
 .samplesRow {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
+  gap: 4px;
+  margin-left: 8px;
+  flex-wrap: wrap;
+}
+
+.samplesLabel,
+.sampleBtn {
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.sampleBtn {
+  padding: 3px 6px;
 }
 
 .samplesLabel {

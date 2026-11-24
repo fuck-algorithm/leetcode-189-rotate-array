@@ -169,27 +169,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
         <div className={styles.divider} />
 
-        <div className={styles.stepInfo}>
-          步骤 {currentStep + 1} / {totalSteps}
-        </div>
       </div>
-
-      <div
-        ref={progressRef}
-        className={styles.progressBar}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      >
-        <div
-          className={styles.progressFill}
-          style={{ width: `${progress}%` }}
-        />
-        <div
-          className={styles.progressHandle}
-          style={{ left: `${progress}%` }}
-        />
+      <div className={styles.progressBar} ref={progressRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+        <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+        <div className={styles.progressHandle} style={{ left: `${progress}%` }} />
       </div>
+      <div className={styles.stepInfo}>步骤 {currentStep + 1} / {totalSteps}</div>
     </div>
   );
 };

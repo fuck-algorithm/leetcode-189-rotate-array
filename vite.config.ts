@@ -11,5 +11,5 @@ export default defineConfig({
   preview: {
     port: 56018
   },
-  base: '/leetcode-189-rotate-array/'
+  base: process.env.VITE_APP_BASE || '/leetcode-189-rotate-array/'
 })

@@ -4,11 +4,14 @@ import type { AlgorithmStep, AlgorithmSolution } from '../types';
 const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   const n = nums.length;
-  k = k % n;
+  k = n === 0 ? 0 : k % n;
   
   if (k === 0 || n <= 1) {
     steps.push({
       id: 0,
+      operation: 'done',
+      narration: `有效轮转步数为 ${k} 且数组长度为 ${n}，所以数组无需改变。`,
+      anchorIds: ['return'],
       description: `k=${k} 或数组长度为 ${n}，无需轮转`,
       codeLines: { java: [2], python: [2], golang: [2], javascript: [2] },
       arrayState: [...nums],
@@ -22,6 +25,9 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   // 初始状态
   steps.push({
     id: steps.length,
+    operation: 'init',
+    narration: `先规范化轮转步数为 ${k}，因为整数组长度的轮转不会改变结果。`,
+    anchorIds: ['normalize-k'],
     description: `初始化：数组长度 n=${n}，轮转步数 k=${k}`,
     codeLines: { java: [2], python: [2], golang: [2], javascript: [2] },
     arrayState: [...result],
@@ -36,10 +42,13 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   const reverseWithSteps = (start: number, end: number, phase: string) => {
     steps.push({
       id: steps.length,
+      operation: 'init',
+      narration: `先翻转${phase}的区间 [${start}, ${end}]，因为后续交换会恢复区间内部顺序。`,
+      anchorIds: ['reverse-range'],
       description: `${phase}：翻转区间 [${start}, ${end}]`,
       codeLines: { java: [3, 4, 5, 6, 7], python: [3, 4, 5, 6], golang: [3, 4, 5, 6, 7], javascript: [3, 4, 5, 6, 7] },
       arrayState: [...result],
-      highlightIndices: Array.from({ length: end - start + 1 }, (_, i) => start + i),
+      highlightIndices: [start, end],
       pointers: [
         { name: 'start', index: start, color: '#3b82f6' },
         { name: 'end', index: end, color: '#ef4444' },
@@ -53,6 +62,9 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       // 交换前
       steps.push({
         id: steps.length,
+        operation: 'compare',
+        narration: `比较区间两端 nums[${left}] 与 nums[${right}]，因为翻转需要交换对称位置。`,
+        anchorIds: ['compare-ends'],
         description: `交换 nums[${left}]=${result[left]} 和 nums[${right}]=${result[right]}`,
         codeLines: { java: [5], python: [5], golang: [5], javascript: [5] },
         arrayState: [...result],
@@ -74,6 +86,9 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       // 交换后
       steps.push({
         id: steps.length,
+        operation: 'swap',
+        narration: `交换两端后继续向区间中心收缩，因为每对对称元素已完成翻转。`,
+        anchorIds: ['swap-ends'],
         description: `交换完成：nums[${left}]=${result[left]}, nums[${right}]=${result[right]}`,
         codeLines: { java: [5, 6, 7], python: [5, 6], golang: [5, 6, 7], javascript: [5, 6, 7] },
         arrayState: [...result],
@@ -90,10 +105,13 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
 
     steps.push({
       id: steps.length,
+      operation: 'done',
+      narration: `${phase}的对称位置已全部交换，因此该区间现在顺序反转。`,
+      anchorIds: ['finish-reverse'],
       description: `${phase}完成`,
       codeLines: { java: [8], python: [6], golang: [8], javascript: [8] },
       arrayState: [...result],
-      highlightIndices: Array.from({ length: end - start + 1 }, (_, i) => start + i),
+      highlightIndices: [start, end],
     });
   };
 
@@ -109,6 +127,9 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   // 最终结果
   steps.push({
     id: steps.length,
+    operation: 'done',
+    narration: `三段翻转已完成，原数组现在向右轮转了 ${k} 位。`,
+    anchorIds: ['return'],
     description: `轮转完成！数组向右移动了 ${k} 位`,
     codeLines: { java: [12], python: [10], golang: [12], javascript: [12] },
     arrayState: [...result],

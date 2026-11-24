@@ -13,30 +13,54 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-right: var(--spacing-md);
+  min-height: 32px;
+  padding-right: 12px;
+  height: 32px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
 }
 
 .mainContent {
   flex: 1;
-  display: flex;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 24vw, 400px);
+  gap: 8px;
+  padding: 8px;
   overflow: hidden;
   min-height: 0;
 }
 
 .codeSection {
-  width: 380px;
-  flex-shrink: 0;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
 .canvasSection {
-  flex: 1;
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 1099px) {
+  .mainContent {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) clamp(180px, 22vh, 240px);
+  }
+
+  .canvasSection {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .codeSection {
+    grid-column: 1;
+    grid-row: 2;
+  }
 }
