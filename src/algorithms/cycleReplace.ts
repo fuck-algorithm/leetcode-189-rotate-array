@@ -32,7 +32,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   steps.push({
     id: steps.length,
     operation: 'init',
-    narration: `先计算 gcd(${k},${n})=${count} 个置换环，因为每个环都必须独立遍历。`,
+    narration: `每个数向右走 ${k} 格，会沿固定路线绕圈。这个数组会分成 ${count} 个圈；沿圈搬运并回到起点时，这个圈就完成了。`,
     anchorIds: ['initialize-cycles'],
     description: `初始化：n=${n}, k=${k}, 需要 gcd(${k},${n})=${count} 轮遍历`,
     codeLines: { java: [3, 4, 5], python: [2, 3, 4], golang: [3, 4, 5], javascript: [3, 4, 5] },
@@ -54,26 +54,35 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       operation: 'init',
       narration: `从未处理的下标 ${start} 开始新环，因为前面的置换环已各自回到起点。`,
       anchorIds: ['start-cycle'],
+      guide: start === 0 ? {
+        title: '绕圈搬家：手里一次只拿一个数',
+        message: `想象每个数都要搬到右边 ${k} 格。每一格可能被别的数占着，所以先记住那里的数，再把手里的数放进去；绕一圈回到起点，这一圈就完成了。`,
+      } : undefined,
       description: `开始第 ${start + 1} 轮环状替换，起点 start=${start}`,
       codeLines: { java: [6, 7, 8], python: [5, 6, 7], golang: [6, 7, 8], javascript: [6, 7, 8] },
       arrayState: [...result],
       highlightIndices: [start],
       pointers: [{ name: 'start', index: start, color: '#10b981' }],
       variables: [
-        { name: 'start', value: start },
-        { name: 'current', value: current },
-        { name: 'prev', value: prev },
+        { name: '本圈起点', value: start },
+        { name: '当前索引', value: current },
+        { name: '手里要放的数', value: prev },
       ],
     });
 
     do {
-      const next = (current + k) % n;
+      const rawNext = current + k;
+      const next = rawNext % n;
       const temp = result[next];
-      
+
       steps.push({
         id: steps.length,
         operation: 'read',
-        narration: `先暂存 nums[${next}]=${temp}，因为即将写入该位置会覆盖原值。`,
+        narration: `从索引 ${current} 向右数 ${k} 格，目标是 ${next}；这格已有 ${temp}。先把 ${temp} 拿在手里，才不会写入时把它盖掉。`,
+        guide: {
+          title: '先拿出目标格里的数',
+          message: `准备把手里的 ${prev} 放进索引 ${next}，但那里原本有 ${temp}。先把 ${temp} 暂存在手里，等会儿再接着搬。`,
+        },
         anchorIds: ['read-next', 'save-temp'],
         description: `计算下一个位置: next=(${current}+${k})%${n}=${next}，暂存 temp=nums[${next}]=${temp}`,
         codeLines: { java: [10, 11], python: [9, 10], golang: [10, 11], javascript: [10, 11] },
@@ -84,12 +93,12 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
           { name: 'current', index: current, color: '#3b82f6' },
           { name: 'next', index: next, color: '#f59e0b' },
         ],
-        arrows: [{ from: current, to: next, label: `prev=${prev}` }],
+        arrows: [{ from: next, to: next, label: `暂存 ${temp}` }],
         variables: [
-          { name: 'current', value: current },
-          { name: 'next', value: next },
-          { name: 'prev', value: prev },
-          { name: 'temp', value: temp },
+          { name: '当前索引', value: current },
+          { name: '目标索引', value: `${rawNext} → ${next}` },
+          { name: '手里要放的数', value: prev },
+          { name: '暂存的数', value: temp },
         ],
       });
 
@@ -98,17 +107,22 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       steps.push({
         id: steps.length,
         operation: 'move',
-        narration: `把 ${prev} 放到 nums[${next}]，因为该位置正是源元素右移 ${k} 位后的归属位置。`,
+        narration: `把拿在手里的 ${prev} 放进索引 ${next}。它原来在 ${current}，向右数 ${k} 格正好到这里。`,
         anchorIds: ['write-next'],
         description: `将 prev=${prev} 放入 nums[${next}]`,
         codeLines: { java: [12], python: [11], golang: [12], javascript: [12] },
         arrayState: [...result],
         highlightIndices: [next],
         animationType: 'move',
+        arrows: [{ from: current, to: next, label: `放入 ${prev}` }],
+        guide: {
+          title: `把 ${prev} 搬到它的新位置`,
+          message: `它刚才在索引 ${current}，向右数 ${k} 格该到 ${next}。这个格子刚清空，可以放入 ${prev}。${temp} 还拿在手里，下一轮继续搬。`,
+        },
         pointers: [{ name: 'next', index: next, color: '#f59e0b' }],
         variables: [
-          { name: 'prev', value: prev },
-          { name: 'temp', value: temp },
+          { name: '手里要放的数', value: prev },
+          { name: '刚拿出的数', value: temp },
         ],
       });
 
@@ -118,16 +132,17 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       steps.push({
         id: steps.length,
         operation: 'move',
-        narration: `沿置换环前进到下标 ${current}，因为下一轮要继续填补该位置。`,
+        narration: `刚取出的数是 ${prev}，下一轮轮到它搬家。现在从索引 ${current} 继续，沿着同一条路线往右数 ${k} 格。`,
         anchorIds: ['advance-cycle'],
         description: `更新: prev=${prev}, current=${current}`,
         codeLines: { java: [13, 14], python: [12, 13], golang: [13, 14], javascript: [13, 14] },
         arrayState: [...result],
         highlightIndices: [current],
         pointers: [{ name: 'current', index: current, color: '#3b82f6' }],
+        arrows: [{ from: next, to: current, label: `下一轮取回 ${prev}` }],
         variables: [
-          { name: 'prev', value: prev },
-          { name: 'current', value: current },
+          { name: '已保存的值', value: prev },
+          { name: '现在所在索引', value: current },
         ],
       });
     } while (start !== current);

@@ -52,7 +52,21 @@ const nodeEdge = (center: Point, toward: Point, size: number): Point => {
   return { x: center.x + dx / scale * half, y: center.y + dy / scale * half };
 };
 
-const wrapText = (text: string, maxChars: number): string[] => {
+const friendlyVariableName = (name: string): string => ({
+  n: '数组长度',
+  k: '右移格数',
+  i: '当前索引',
+  start: '本圈起点',
+  current: '当前索引',
+  next: '目标索引',
+  prev: '手里要放的数',
+  temp: '暂存的数',
+  count: '圈数',
+  newIndex: '新位置',
+  newIndexFormula: '新位置怎么算',
+}[name] ?? name);
+
+const wrapText = (text: string, maxChars: number, maxLines = 2): string[] => {
   const words = text.split(/(\s+)/).filter(Boolean);
   const lines: string[] = [];
   let line = '';
@@ -71,7 +85,7 @@ const wrapText = (text: string, maxChars: number): string[] => {
     }
   }
   if (line.trim()) lines.push(line.trim());
-  return lines.slice(0, 2);
+  return lines.slice(0, maxLines);
 };
 
 const getArrayLayout = (width: number, height: number, length: number, row: number, rows: number): ArrayLayout => {
@@ -126,6 +140,10 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
         .attr('refX', 8).attr('refY', 0).attr('markerWidth', 5)
         .attr('markerHeight', 5).attr('orient', 'auto')
         .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#fecaca');
+      defs.append('marker').attr('id', 'pointer-arrowhead').attr('viewBox', '0 -5 10 10')
+        .attr('refX', 8).attr('refY', 0).attr('markerWidth', 5)
+        .attr('markerHeight', 5).attr('orient', 'auto')
+        .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#94a3b8');
 
       const layer = svg.append('g').attr('class', 'zoom-layer');
       layer.append('g').attr('class', 'layer-tracks');
@@ -135,6 +153,7 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
       layer.append('g').attr('class', 'layer-arrows');
       layer.append('g').attr('class', 'layer-flow');
       layer.append('g').attr('class', 'layer-variables');
+      layer.append('g').attr('class', 'layer-guidance');
       layer.append('g').attr('class', 'layer-teaching');
 
       svg.call(d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.5, 3])
@@ -153,6 +172,12 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
       ...(hasExtraArray ? [{ id: 'newArr', values: step.extraArray as (number | null)[], row: 1, label: 'newArr', extra: true }] : []),
     ] : [];
 
+    const extraArrow = hasExtraArray ? step?.arrows?.[0] : undefined;
+    const sourceIndices = new Set(extraArrow ? [extraArrow.from] : []);
+    const targetIndices = new Set(extraArrow ? [extraArrow.to] : []);
+    const cycleArrow = solutionId === 'cycle-replace' ? step?.arrows?.[0] : undefined;
+    const readFromIndices = new Set(cycleArrow && step?.operation === 'read' ? [cycleArrow.from] : []);
+    const writeToIndices = new Set(cycleArrow && step?.operation === 'move' ? [cycleArrow.to] : []);
     const arrayGroups = arraysLayer.selectAll<SVGGElement, typeof arrays[number]>('.array-group')
       .data(arrays, (d) => d.id)
       .join(
@@ -223,13 +248,17 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
       nodes.select<SVGRectElement>('rect.node-body').interrupt('state').transition('state').duration(duration)
         .attr('width', boxSize).attr('height', boxSize)
         .attr('fill', (_, index) => {
-          if (array.extra && array.values[index] === null) return COLORS.empty;
+          if (array.extra && array.values[index] === null && !targetIndices.has(index)) return COLORS.empty;
           if (comparedValues.has(index)) return COLORS.compare;
-          if (currentValues.has(index)) return COLORS.current;
+          if (readFromIndices.has(index)) return '#e8b04b';
+          if (currentValues.has(index) || sourceIndices.has(index)) return COLORS.current;
+          if (writeToIndices.has(index)) return COLORS.done;
+          if (targetIndices.has(index)) return array.values[index] === null ? '#475569' : COLORS.done;
           return completedValues.has(index) ? COLORS.done : 'url(#array-node-gradient)';
         })
-        .attr('stroke', (_, index) => comparedValues.has(index) ? '#ffd08a' : currentValues.has(index) ? '#ffe0a3' : 'rgba(255,255,255,.18)')
-        .attr('filter', (_, index) => currentValues.has(index) || comparedValues.has(index) ? 'url(#array-focus-glow)' : null);
+        .attr('stroke', (_, index) => comparedValues.has(index) ? '#ffd08a' : currentValues.has(index) ? '#ffe0a3' : targetIndices.has(index) ? '#6ee7b7' : 'rgba(255,255,255,.18)')
+        .attr('stroke-width', (_, index) => comparedValues.has(index) ? 2.5 : targetIndices.has(index) ? 2.5 : 1.5)
+        .attr('filter', (_, index) => currentValues.has(index) || comparedValues.has(index) || sourceIndices.has(index) || readFromIndices.has(index) || writeToIndices.has(index) ? 'url(#array-focus-glow)' : null);
       nodes.select<SVGPathElement>('path.node-sheen').attr('d', `M8,1 H${Math.max(8, boxSize - 8)} Q${boxSize - 1},1 ${boxSize - 1},8 V${Math.min(18, boxSize / 2)} H1 V8 Q1,1 8,1`)
         .attr('fill', 'rgba(255,255,255,.11)').attr('pointer-events', 'none');
       nodes.select<SVGTextElement>('text.value').attr('x', boxSize / 2).attr('y', boxSize / 2 + Math.min(5, boxSize * 0.12))
@@ -237,7 +266,7 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
         .attr('font-weight', 650).attr('pointer-events', 'none')
         .text((d) => d === null ? '∅' : String(d));
       nodes.select<SVGCircleElement>('circle.status-dot').attr('cx', boxSize - 7).attr('cy', 7).attr('r', Math.max(2, boxSize * 0.055))
-        .attr('fill', (_, index) => currentValues.has(index) ? '#fff3d6' : comparedValues.has(index) ? '#fff' : 'rgba(255,255,255,.48)');
+        .attr('fill', (_, index) => sourceIndices.has(index) || readFromIndices.has(index) ? '#fff3d6' : targetIndices.has(index) || writeToIndices.has(index) ? '#d1fae5' : currentValues.has(index) ? '#fff3d6' : comparedValues.has(index) ? '#fff' : 'rgba(255,255,255,.48)');
     });
 
     const pointers = step?.pointers ?? [];
@@ -245,19 +274,35 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
       .selectAll<SVGGElement, NonNullable<AlgorithmStep['pointers']>[number]>('.pointer')
       .data(pointers, (d) => d.name)
       .join(
-        (enter) => enter.append('g').attr('class', 'pointer'),
+        (enter) => {
+          const pointer = enter.append('g').attr('class', 'pointer');
+          pointer.append('path').attr('class', 'pointer-stem');
+          pointer.append('path').attr('class', 'pointer-head');
+          pointer.append('text');
+          return pointer;
+        },
         (update) => update.interrupt(),
         (exit) => exit.interrupt().remove(),
       );
-    pointerGroups.interrupt('pointer-move').attr('data-index', (pointer) => pointer.index);
-    const pointerLayout = getArrayLayout(width, height, step?.arrayState.length ?? 1, 0, hasExtraArray ? 2 : 1);
-    pointerGroups.transition('pointer-move').duration(duration).ease(d3.easeCubicOut)
-      .attr('transform', (pointer) => `translate(${nodeCenter(pointerLayout, pointer.index).x}, ${pointerLayout.y - 10})`);
-    pointerGroups.selectAll('polygon').data((d) => [d]).join('polygon')
-      .attr('points', '0,0 -6,-12 6,-12').attr('fill', (d) => d.color);
-    pointerGroups.selectAll('text').data((d) => [d]).join('text')
-      .attr('y', -18).attr('text-anchor', 'middle').attr('font-size', 12)
-      .attr('fill', (d) => d.color).text((d) => d.name);
+    pointerGroups.interrupt('pointer-move').attr('data-index', (pointer) => pointer.index)
+      .attr('transform', 'translate(0, 0)');
+    pointerGroups.each(function (pointer) {
+      const layout = getArrayLayout(width, height, step?.arrayState.length ?? 1, 0, hasExtraArray ? 2 : 1);
+      const center = nodeCenter(layout, pointer.index);
+      const startY = layout.y - layout.boxSize * 0.92;
+      const endY = layout.y - 3;
+      const group = d3.select(this);
+      group.select('path.pointer-stem').attr('d', `M${center.x},${startY + 9} L${center.x},${endY}`)
+        .attr('fill', 'none').attr('stroke', pointer.color).attr('stroke-width', 1.5)
+        .attr('stroke-dasharray', '3 3').attr('opacity', 0.8);
+      group.select('path.pointer-head').attr('d', `M${center.x - 5},${endY - 7} L${center.x},${endY} L${center.x + 5},${endY - 7}`)
+        .attr('fill', 'none').attr('stroke', pointer.color).attr('stroke-width', 2)
+        .attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+      group.select('text').attr('x', center.x).attr('y', startY).attr('text-anchor', 'middle')
+        .attr('fill', pointer.color).attr('font-size', 10).attr('font-weight', 700)
+        .attr('paint-order', 'stroke').attr('stroke', '#0f172a').attr('stroke-width', 4)
+        .text(pointer.name);
+    });
 
     const activeIndices = [...new Set([
       ...(step?.highlightIndices ?? []),
@@ -303,9 +348,49 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
         .attr('font-size', 10).attr('font-weight', 650).text(`${range.label} [${range.start}, ${range.end}]`);
     });
 
-    const flowData = step && !hasExtraArray && solutionId === 'reverse' && step.operation === 'compare' && activeIndices.length === 2
-      ? [{ id: `swap-${step.id}`, from: activeIndices[0], to: activeIndices[1], label: '交换位置' }]
-      : [];
+    const swapBase = step && !hasExtraArray && solutionId === 'reverse' && step.operation === 'compare' && activeIndices.length === 2
+      ? { id: `swap-${step.id}`, first: Math.min(...activeIndices), second: Math.max(...activeIndices) }
+      : undefined;
+    const flowData = swapBase ? [
+      { id: `${swapBase.id}-forward`, from: swapBase.first, to: swapBase.second, lane: -1, label: `nums[${swapBase.first}] → nums[${swapBase.second}]` },
+      { id: `${swapBase.id}-backward`, from: swapBase.second, to: swapBase.first, lane: 1, label: `nums[${swapBase.second}] → nums[${swapBase.first}]` },
+    ] : [];
+    const swapCues = root.select<SVGGElement>('.layer-flow')
+      .selectAll<SVGGElement, typeof flowData[number]>('.swap-cue')
+      .data(flowData, (item) => item.id)
+      .join(
+        (enter) => {
+          const cue = enter.append('g').attr('class', 'swap-cue');
+          cue.append('path').attr('class', 'swap-halo');
+          cue.append('path').attr('class', 'swap-path');
+          cue.append('text').attr('class', 'swap-label');
+          return cue;
+        },
+        (update) => update,
+        (exit) => exit.interrupt().remove(),
+      );
+    swapCues.each(function (cueData) {
+      const layout = getArrayLayout(width, height, step?.arrayState.length ?? 1, 0, 1);
+      const sourceCenter = nodeCenter(layout, cueData.from);
+      const targetCenter = nodeCenter(layout, cueData.to);
+      const verticalLane = layout.y - layout.boxSize / 2 - 12;
+      const start = nodeEdge(sourceCenter, { x: 0, y: -1 }, layout.boxSize);
+      const end = nodeEdge(targetCenter, { x: 0, y: -1 }, layout.boxSize);
+      const control = { x: (start.x + end.x) / 2, y: verticalLane + cueData.lane * 14 };
+      const d = `M${start.x},${start.y} Q${control.x},${control.y} ${end.x},${end.y}`;
+      const cue = d3.select(this).interrupt('draw');
+      cue.select('path.swap-halo').attr('d', d).attr('fill', 'none').attr('stroke', '#0f172a')
+        .attr('stroke-width', 6).attr('stroke-linecap', 'round');
+      cue.select('path.swap-path').attr('d', d).attr('fill', 'none')
+        .attr('stroke', cueData.lane < 0 ? '#fb7185' : '#60a5fa').attr('stroke-width', 2.5)
+        .attr('stroke-dasharray', '4 3').attr('stroke-linecap', 'round')
+        .attr('marker-end', 'url(#pointer-arrowhead)');
+      cue.select('text.swap-label').attr('x', control.x).attr('y', control.y - 3)
+        .attr('text-anchor', 'middle').attr('fill', cueData.lane < 0 ? '#fecdd3' : '#bfdbfe')
+        .attr('font-size', 9).attr('font-weight', 600)
+        .attr('paint-order', 'stroke').attr('stroke', '#0f172a').attr('stroke-width', 4)
+        .text(cueData.label);
+    });
     const flowGroups = root.select<SVGGElement>('.layer-flow')
       .selectAll<SVGGElement, typeof flowData[number]>('.flow-cue')
       .data(flowData, (flow) => flow.id)
@@ -355,14 +440,29 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
     arrowGroups.each(function (arrow) {
       const sourceLayout = getArrayLayout(width, height, step?.arrayState.length ?? 1, 0, hasExtraArray ? 2 : 1);
       const targetLayout = getArrayLayout(width, height, step?.extraArray?.length ?? step?.arrayState.length ?? 1, hasExtraArray ? 1 : 0, hasExtraArray ? 2 : 1);
+      if (arrow.from === arrow.to) {
+        const center = nodeCenter(sourceLayout, arrow.from);
+        const loopRadius = Math.max(16, sourceLayout.boxSize * 0.32);
+        const start = { x: center.x + loopRadius * 0.7, y: center.y - loopRadius * 0.7 };
+        const end = { x: center.x + loopRadius * 0.7, y: center.y + loopRadius * 0.7 };
+        const control1 = { x: center.x + loopRadius * 2.8, y: center.y - loopRadius * 1.8 };
+        const control2 = { x: center.x + loopRadius * 2.8, y: center.y + loopRadius * 1.8 };
+        const d = `M${start.x},${start.y} C${control1.x},${control1.y} ${control2.x},${control2.y} ${end.x},${end.y}`;
+        const cue = d3.select(this);
+        cue.selectAll('path').data([arrow]).join('path').attr('d', d).attr('fill', 'none')
+          .attr('stroke', COLORS.arrow).attr('stroke-width', 2.2).attr('stroke-dasharray', '4 3')
+          .attr('marker-end', 'url(#arrowhead)');
+        cue.selectAll<SVGTextElement, NonNullable<AlgorithmStep['arrows']>[number]>('text.arrow-label')
+          .data([arrow]).join('text').attr('class', 'arrow-label').attr('x', control1.x + 2).attr('y', center.y)
+          .attr('text-anchor', 'start').attr('fill', COLORS.arrow).attr('font-size', 10).attr('font-weight', 650)
+          .attr('paint-order', 'stroke').attr('stroke', '#0f172a').attr('stroke-width', 4)
+          .text((item) => item.label ?? '暂存');
+        return;
+      }
       const sourceCenter = nodeCenter(sourceLayout, arrow.from);
       const targetCenter = nodeCenter(targetLayout, arrow.to);
-      const from = hasExtraArray
-        ? nodeEdge(sourceCenter, targetCenter, sourceLayout.boxSize)
-        : { x: sourceCenter.x, y: sourceLayout.y + sourceLayout.boxSize + 5 };
-      const to = hasExtraArray
-        ? nodeEdge(targetCenter, sourceCenter, targetLayout.boxSize)
-        : { x: targetCenter.x, y: targetLayout.y + targetLayout.boxSize + 5 };
+      const from = nodeEdge(sourceCenter, targetCenter, sourceLayout.boxSize);
+      const to = nodeEdge(targetCenter, sourceCenter, targetLayout.boxSize);
       const dx = to.x - from.x;
       const dy = to.y - from.y;
       const distance = Math.hypot(dx, dy) || 1;
@@ -415,7 +515,91 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
       .attr('stroke', COLORS.secondary);
     variablePanel.selectAll<SVGTextElement, typeof variables[number]>('text')
       .data(variables).join('text').attr('x', 8).attr('y', (_, index) => 22 + index * 22)
-      .attr('fill', COLORS.text).attr('font-size', 12).text((variable) => `${variable.name} = ${variable.value}`);
+      .attr('fill', COLORS.text).attr('font-size', 11)
+      .text((variable) => `${friendlyVariableName(variable.name)}：${variable.value}`);
+    variablePanel.select<SVGRectElement>('rect').attr('height', variables.length * 22 + 12);
+
+    const carriedValue = solutionId === 'cycle-replace' && step?.variables
+      ? step.operation === 'read'
+        ? step.variables.find((variable) => variable.name === '刚拿出的数' || variable.name === 'temp')?.value
+        : step.anchorIds?.includes('write-next')
+          ? step.variables.find((variable) => variable.name === '刚拿出的数' || variable.name === 'temp')?.value
+          : step.anchorIds?.includes('advance-cycle')
+            ? step.variables.find((variable) => variable.name === '已保存的值' || variable.name === 'prev')?.value
+            : undefined
+      : undefined;
+    const carryCard = root.select<SVGGElement>('.layer-guidance').selectAll<SVGGElement, string>('.carry-card')
+      .data(carriedValue === undefined ? [] : [String(carriedValue)])
+      .join(
+        (enter) => {
+          const card = enter.append('g').attr('class', 'carry-card');
+          card.append('rect').attr('rx', 12);
+          card.append('path').attr('class', 'carry-icon');
+          card.append('text').attr('class', 'carry-title');
+          card.append('text').attr('class', 'carry-value');
+          return card;
+        },
+        (update) => update,
+        (exit) => exit.interrupt().remove(),
+      );
+    if (carriedValue !== undefined) {
+      const carryX = 16;
+      const carryY = 78;
+      carryCard.attr('transform', `translate(${carryX}, ${carryY})`).attr('opacity', 1);
+      carryCard.select('rect').attr('width', 132).attr('height', 54)
+        .attr('fill', 'rgba(245, 158, 11, .09)').attr('stroke', 'rgba(245, 158, 11, .48)');
+      carryCard.select('path.carry-icon').attr('d', 'M10,17 C10,9 25,9 25,17 M10,17 L10,29 C10,35 25,35 25,29 L25,17')
+        .attr('fill', 'none').attr('stroke', COLORS.current).attr('stroke-width', 1.6);
+      carryCard.select('text.carry-title').attr('x', 33).attr('y', 20).attr('fill', '#fcd38d')
+        .attr('font-size', 10).attr('font-weight', 600).text('手里暂存');
+      carryCard.select('text.carry-value').attr('x', 33).attr('y', 41).attr('fill', '#fff7ed')
+        .attr('font-size', 15).attr('font-weight', 750).text(String(carriedValue));
+    }
+
+    const cycleGuide = solutionId === 'cycle-replace' && step?.arrows?.[0] && step.operation === 'read'
+      ? { title: '先拿出，再放入', message: `箭头指向要腾出的位置。原来的数 ${step.variables?.find((variable) => variable.name === '刚拿出的数')?.value ?? ''} 先拿在手里，避免被覆盖。` }
+      : solutionId === 'cycle-replace' && step?.arrows?.[0] && step.operation === 'move'
+        ? { title: '继续沿路线搬', message: `${step.arrows[0].label}。每次只搬一个数；回到起点时，这一圈就完成了。` }
+        : undefined;
+    const mappingGuide = hasExtraArray && step?.operation === 'move' && step.arrows?.[0]
+      ? { title: '沿箭头搬一个数', message: `橙色是取出的数；绿色是它要搬到的格子。搬完后，下一个数也照这个规则找位置。` }
+      : undefined;
+    const guidanceContent = step?.guide ?? cycleGuide ?? mappingGuide;
+    const guidance = root.select<SVGGElement>('.layer-guidance');
+    const guideContent = guidanceContent;
+    const guideCard = guidance.selectAll<SVGGElement, NonNullable<AlgorithmStep['guide']>>('.guide-card')
+      .data(guideContent ? [guideContent] : [])
+      .join(
+        (enter) => {
+          const card = enter.append('g').attr('class', 'guide-card');
+          card.append('rect').attr('rx', 9);
+          card.append('circle').attr('r', 3);
+          card.append('text').attr('class', 'guide-title');
+          card.append('text').attr('class', 'guide-message');
+          return card;
+        },
+        (update) => update,
+        (exit) => exit.interrupt().remove(),
+      );
+    if (guideContent) {
+      const guideWidth = Math.min(width * 0.46, 286);
+      const guideX = 12;
+      const guideMaxChars = Math.max(24, Math.floor((guideWidth - 30) / 10));
+      const guideLines = wrapText(guideContent.message, guideMaxChars, 4);
+      const guideHeight = 46 + Math.max(0, guideLines.length - 1) * 13;
+      guideCard.attr('transform', `translate(${guideX}, 44)`);
+      guideCard.select('rect').attr('width', guideWidth).attr('height', guideHeight)
+        .attr('fill', 'rgba(14, 35, 54, .97)').attr('stroke', 'rgba(96, 165, 250, .42)');
+      guideCard.select('circle').attr('cx', 15).attr('cy', 17).attr('fill', '#60a5fa');
+      guideCard.select('text.guide-title').attr('x', 27).attr('y', 20)
+        .attr('fill', '#bfdbfe').attr('font-size', 11).attr('font-weight', 700)
+        .text(guideContent.title);
+      guideCard.select('text.guide-message').attr('fill', '#e2e8f0').attr('font-size', 10)
+        .selectAll<SVGTSpanElement, string>('tspan').data(guideLines).join('tspan')
+        .attr('x', 14).attr('y', (_, index) => 40 + index * 13)
+        .text((line) => line);
+      guideCard.select('rect').attr('height', guideHeight);
+    }
 
     const teaching = root.select<SVGGElement>('.layer-teaching');
     const badge = teaching.selectAll<SVGGElement, string>('.operation-badge')

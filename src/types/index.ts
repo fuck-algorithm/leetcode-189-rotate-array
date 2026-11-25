@@ -6,6 +6,7 @@ export interface AlgorithmStep {
   operation?: StepOperation;
   narration?: string;
   anchorIds?: string[];
+  guide?: { title: string; message: string };
   description: string;
   // 代码行高亮 - 支持多语言
   codeLines: {

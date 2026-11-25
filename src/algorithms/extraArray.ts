@@ -26,8 +26,12 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   steps.push({
     id: steps.length,
     operation: 'init',
-    narration: `先建立长度为 ${n} 的结果数组，因为每个原元素都要被映射到唯一的新下标。`,
+    narration: `下面的新数组先留出 ${n} 个空格。我们逐个看 nums 里的数，把它放到右移 ${k} 格后应该坐的位置。`,
     anchorIds: ['allocate-result'],
+    guide: {
+      title: '每个数向右搬 k 格',
+      message: `当前第一个数 ${nums[0]} 从索引 0 出发，向右数 ${k} 格会到索引 ${k % n}。越过末尾就从索引 0 继续数。`,
+    },
     description: `初始化：数组长度 n=${n}，轮转步数 k=${k}`,
     codeLines: { java: [3, 4], python: [2, 3], golang: [3, 4], javascript: [3, 4] },
     arrayState: [...nums],
@@ -41,13 +45,17 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
 
   // 逐个元素放置
   for (let i = 0; i < n; i++) {
-    const newIndex = (i + k) % n;
+    const rawIndex = i + k;
+    const newIndex = rawIndex % n;
     newArr[newIndex] = nums[i];
-    
+    const mappingNarration = rawIndex < n
+      ? `数 ${nums[i]} 原来在第 ${i} 格。向右移动 ${k} 格，就把它放到新数组第 ${newIndex} 格。`
+      : `数 ${nums[i]} 从第 ${i} 格向右移动 ${k} 格会越过末尾；从头继续数，落在第 ${newIndex} 格。`
+
     steps.push({
       id: steps.length,
       operation: 'move',
-      narration: `把 nums[${i}]=${nums[i]} 写入 newArr[${newIndex}]，因为右移 ${k} 位后目标下标按数组长度取模。`,
+      narration: mappingNarration,
       anchorIds: ['map-index', 'write-result'],
       description: `将 nums[${i}]=${nums[i]} 放到新数组位置 (${i}+${k})%${n}=${newIndex}`,
       codeLines: { java: [5, 6], python: [4, 5], golang: [5, 6], javascript: [5, 6] },
@@ -56,8 +64,9 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       extraArray: [...newArr] as number[],
       arrows: [{ from: i, to: newIndex, label: `→ newArr[${newIndex}]` }],
       variables: [
-        { name: 'i', value: i },
-        { name: 'newIndex', value: newIndex },
+        { name: '当前数', value: nums[i] },
+        { name: '原位置', value: i },
+        { name: '新位置怎么算', value: `${rawIndex} → ${newIndex}` },
       ],
       animationType: 'copy',
     });

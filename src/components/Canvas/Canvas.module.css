@@ -49,6 +49,27 @@
   paint-order: stroke;
 }
 
+.svg :global(.range-outline) {
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.svg :global(.swap-path) {
+  vector-effect: non-scaling-stroke;
+}
+
+.svg :global(.guide-card) {
+  filter: drop-shadow(0 8px 18px rgba(2, 8, 23, 0.28));
+}
+
+.svg :global(.guide-message) {
+  letter-spacing: 0.01em;
+}
+
+.svg :global(.guide-card) {
+  pointer-events: none;
+}
+
 .svg:active {
   cursor: grabbing;
 }

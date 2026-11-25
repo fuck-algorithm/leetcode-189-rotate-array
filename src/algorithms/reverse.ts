@@ -4,6 +4,7 @@ import type { AlgorithmStep, AlgorithmSolution } from '../types';
 const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   const n = nums.length;
+  const originalK = k;
   k = n === 0 ? 0 : k % n;
   
   if (k === 0 || n <= 1) {
@@ -26,7 +27,9 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
   steps.push({
     id: steps.length,
     operation: 'init',
-    narration: `先规范化轮转步数为 ${k}，因为整数组长度的轮转不会改变结果。`,
+    narration: originalK === k
+      ? `右移 ${k} 格；下面用“三次翻转”一步步把这些数排到新位置。`
+      : `右移 ${originalK} 格和右移 ${k} 格结果一样；每多走 ${n} 格都会绕回原位。`,
     anchorIds: ['normalize-k'],
     description: `初始化：数组长度 n=${n}，轮转步数 k=${k}`,
     codeLines: { java: [2], python: [2], golang: [2], javascript: [2] },
@@ -43,8 +46,12 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
     steps.push({
       id: steps.length,
       operation: 'init',
-      narration: `先翻转${phase}的区间 [${start}, ${end}]，因为后续交换会恢复区间内部顺序。`,
+      narration: `${phase}：[${start}, ${end}]。从两端往中间配对交换；走到中间时，这一段就倒过来了。`,
       anchorIds: ['reverse-range'],
+      guide: start === 0 && end === n - 1 ? {
+        title: '为什么先整体倒过来？',
+        message: `右移 ${k} 格，就是把最后 ${k} 个数搬到最前面。整体倒序会先把这 ${k} 个数送到前面；再分别倒回两段，让各段内部顺序恢复。`,
+      } : undefined,
       description: `${phase}：翻转区间 [${start}, ${end}]`,
       codeLines: { java: [3, 4, 5, 6, 7], python: [3, 4, 5, 6], golang: [3, 4, 5, 6, 7], javascript: [3, 4, 5, 6, 7] },
       arrayState: [...result],
@@ -63,7 +70,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       steps.push({
         id: steps.length,
         operation: 'compare',
-        narration: `比较区间两端 nums[${left}] 与 nums[${right}]，因为翻转需要交换对称位置。`,
+        narration: `翻转要让这段倒过来，所以把左边的 ${result[left]} 和右边的 ${result[right]} 对调；中间的数暂时不动。`,
         anchorIds: ['compare-ends'],
         description: `交换 nums[${left}]=${result[left]} 和 nums[${right}]=${result[right]}`,
         codeLines: { java: [5], python: [5], golang: [5], javascript: [5] },
@@ -87,7 +94,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       steps.push({
         id: steps.length,
         operation: 'swap',
-        narration: `交换两端后继续向区间中心收缩，因为每对对称元素已完成翻转。`,
+        narration: `两端已经换好。左边界向右一步、右边界向左一步，只处理还没配对的里面一段。`,
         anchorIds: ['swap-ends'],
         description: `交换完成：nums[${left}]=${result[left]}, nums[${right}]=${result[right]}`,
         codeLines: { java: [5, 6, 7], python: [5, 6], golang: [5, 6, 7], javascript: [5, 6, 7] },
