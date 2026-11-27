@@ -77,26 +77,42 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
 
       steps.push({
         id: steps.length,
-        operation: 'read',
-        narration: `从索引 ${current} 向右数 ${k} 格，目标是 ${next}；这格已有 ${temp}。先把 ${temp} 拿在手里，才不会写入时把它盖掉。`,
-        guide: {
-          title: '先拿出目标格里的数',
-          message: `准备把手里的 ${prev} 放进索引 ${next}，但那里原本有 ${temp}。先把 ${temp} 暂存在手里，等会儿再接着搬。`,
-        },
-        anchorIds: ['read-next', 'save-temp'],
-        description: `计算下一个位置: next=(${current}+${k})%${n}=${next}，暂存 temp=nums[${next}]=${temp}`,
-        codeLines: { java: [10, 11], python: [9, 10], golang: [10, 11], javascript: [10, 11] },
+        operation: 'compare',
+        narration: `从当前索引 ${current} 向右移动 ${k} 格，未取模的位置是 ${rawNext}；对数组长度 ${n} 取余后，目标位置为 ${next}。`,
+        anchorIds: ['calculate-next', 'read-next'],
+        description: `计算目标下标：(${current}+${k})%${n}=${next}`,
+        codeLines: { java: [10], python: [9], golang: [10], javascript: [10] },
         arrayState: [...result],
         highlightIndices: [current, next],
-        swapIndices: [current, next],
         pointers: [
           { name: 'current', index: current, color: '#3b82f6' },
           { name: 'next', index: next, color: '#f59e0b' },
         ],
-        arrows: [{ from: next, to: next, label: `暂存 ${temp}` }],
+        arrows: [{ from: current, to: next, label: `右移 ${k} 格` }],
         variables: [
           { name: '当前索引', value: current },
-          { name: '目标索引', value: `${rawNext} → ${next}` },
+          { name: '未取模位置', value: rawNext },
+          { name: '目标索引', value: next },
+        ],
+      });
+
+      steps.push({
+        id: steps.length,
+        operation: 'read',
+        narration: `检查目标格 nums[${next}]，里面原本是 ${temp}。先读取并记住它，待会儿才能继续沿环搬运而不丢失这个数。`,
+        guide: {
+          title: '覆盖前先保住原值',
+          message: `当前手里拿着 ${prev}，目标格里是 ${temp}。先把 ${temp} 暂存起来，再把 ${prev} 放进去。`,
+        },
+        anchorIds: ['read-next', 'save-temp'],
+        description: `暂存目标位置原值：temp=nums[${next}]=${temp}`,
+        codeLines: { java: [11], python: [10], golang: [11], javascript: [11] },
+        arrayState: [...result],
+        highlightIndices: [next],
+        pointers: [{ name: 'next', index: next, color: '#f59e0b' }],
+        arrows: [{ from: next, to: next, label: `暂存 ${temp}` }],
+        variables: [
+          { name: '目标索引', value: next },
           { name: '手里要放的数', value: prev },
           { name: '暂存的数', value: temp },
         ],

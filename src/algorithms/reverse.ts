@@ -108,6 +108,29 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
 
       left++;
       right--;
+
+      steps.push({
+        id: steps.length,
+        operation: 'move',
+        narration: left < right
+          ? `左右边界分别移动到 ${left} 和 ${right}，外侧这对已经处理完；接下来只交换新的对称位置。`
+          : left === right
+            ? `两个边界在索引 ${left} 相遇，中央元素不需要交换，这段翻转即将结束。`
+            : `左边界 ${left} 已越过右边界 ${right}，说明所有成对位置都已处理完。`,
+        anchorIds: ['advance-pointers'],
+        description: `更新双指针：left=${left}, right=${right}`,
+        codeLines: { java: [7, 8], python: [6], golang: [7, 8], javascript: [6, 7] },
+        arrayState: [...result],
+        highlightIndices: left <= right ? [left, right].filter((index, position, values) => position === 0 || index !== values[0]) : [],
+        pointers: left <= right ? [
+          { name: 'L', index: left, color: '#3b82f6' },
+          { name: 'R', index: right, color: '#ef4444' },
+        ] : undefined,
+        variables: [
+          { name: '左边界', value: left },
+          { name: '右边界', value: right },
+        ],
+      });
     }
 
     steps.push({
