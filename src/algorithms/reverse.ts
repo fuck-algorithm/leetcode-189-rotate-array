@@ -100,6 +100,10 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
         codeLines: { java: [5, 6, 7], python: [5, 6], golang: [5, 6, 7], javascript: [5, 6, 7] },
         arrayState: [...result],
         highlightIndices: [left, right],
+        arrows: [
+          { from: left, to: right, label: '交换到右侧' },
+          { from: right, to: left, label: '交换到左侧' },
+        ],
         pointers: [
           { name: 'L', index: left, color: '#3b82f6' },
           { name: 'R', index: right, color: '#ef4444' },
@@ -122,6 +126,10 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
         codeLines: { java: [7, 8], python: [6], golang: [7, 8], javascript: [6, 7] },
         arrayState: [...result],
         highlightIndices: left <= right ? [left, right].filter((index, position, values) => position === 0 || index !== values[0]) : [],
+        arrows: [
+          { from: left - 1, to: right + 1, label: '已交换' },
+          { from: right + 1, to: left - 1, label: '已交换' },
+        ],
         pointers: left <= right ? [
           { name: 'L', index: left, color: '#3b82f6' },
           { name: 'R', index: right, color: '#ef4444' },

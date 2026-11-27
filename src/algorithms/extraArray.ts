@@ -60,7 +60,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       arrayState: [...nums],
       highlightIndices: [i],
       extraArray: [...newArr] as number[],
-      arrows: [{ from: i, to: newIndex, label: `准备放入 newArr[${newIndex}]` }],
+      arrows: [{ from: i, to: newIndex, toArray: 'newArr', label: `准备放入 newArr[${newIndex}]` }],
       variables: [
         { name: '当前数', value: nums[i] },
         { name: '原位置', value: i },
@@ -80,7 +80,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       arrayState: [...nums],
       highlightIndices: [i],
       extraArray: [...newArr] as number[],
-      arrows: [{ from: i, to: newIndex, label: `计算目标 newArr[${newIndex}]` }],
+      arrows: [{ from: i, to: newIndex, toArray: 'newArr', label: `计算目标 newArr[${newIndex}]` }],
       variables: [
         { name: '未取模下标', value: rawIndex },
         { name: '数组长度', value: n },
@@ -121,7 +121,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       arrayState: [...result],
       highlightIndices: [i],
       extraArray: [...newArr] as number[],
-      arrows: [{ from: i, to: i, label: `从 newArr[${i}] 读取` }],
+      arrows: [{ from: i, to: i, fromArray: 'newArr', label: `从 newArr[${i}] 读取` }],
       variables: [{ name: '回填索引', value: i }, { name: '待写回的值', value: newArr[i] as number }],
     });
     result[i] = newArr[i] as number;
@@ -135,6 +135,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
       arrayState: [...result],
       highlightIndices: [i],
       extraArray: [...newArr] as number[],
+      arrows: [{ from: i, to: i, fromArray: 'newArr', toArray: 'nums', label: `写入 nums[${i}]` }],
       variables: [{ name: '已回填', value: `${i + 1}/${n}` }, { name: '当前值', value: result[i] }],
       animationType: 'copy',
     });

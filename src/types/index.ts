@@ -40,6 +40,8 @@ export interface AlgorithmStep {
   arrows?: {
     from: number;
     to: number;
+    fromArray?: 'nums' | 'newArr';
+    toArray?: 'nums' | 'newArr';
     label?: string;
   }[];
 }

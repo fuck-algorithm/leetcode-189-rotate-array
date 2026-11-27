@@ -438,9 +438,11 @@ export const Canvas: React.FC<CanvasProps> = ({ step, solutionId }) => {
       );
     arrowGroups.interrupt();
     arrowGroups.each(function (arrow) {
-      const sourceLayout = getArrayLayout(width, height, step?.arrayState.length ?? 1, 0, hasExtraArray ? 2 : 1);
-      const targetLayout = getArrayLayout(width, height, step?.extraArray?.length ?? step?.arrayState.length ?? 1, hasExtraArray ? 1 : 0, hasExtraArray ? 2 : 1);
-      if (arrow.from === arrow.to) {
+      const sourceIsExtra = arrow.fromArray === 'newArr';
+      const targetIsExtra = arrow.toArray === 'newArr';
+      const sourceLayout = getArrayLayout(width, height, sourceIsExtra ? step?.extraArray?.length ?? 1 : step?.arrayState.length ?? 1, sourceIsExtra ? 1 : 0, hasExtraArray ? 2 : 1);
+      const targetLayout = getArrayLayout(width, height, targetIsExtra ? step?.extraArray?.length ?? 1 : step?.arrayState.length ?? 1, targetIsExtra ? 1 : 0, hasExtraArray ? 2 : 1);
+      if (arrow.from === arrow.to && sourceIsExtra === targetIsExtra) {
         const center = nodeCenter(sourceLayout, arrow.from);
         const loopRadius = Math.max(16, sourceLayout.boxSize * 0.32);
         const start = { x: center.x + loopRadius * 0.7, y: center.y - loopRadius * 0.7 };
