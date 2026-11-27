@@ -155,7 +155,7 @@ const generateSteps = (nums: number[], k: number): AlgorithmStep[] => {
         arrayState: [...result],
         highlightIndices: [current],
         pointers: [{ name: 'current', index: current, color: '#3b82f6' }],
-        arrows: [{ from: next, to: current, label: `下一轮取回 ${prev}` }],
+        arrows: [{ from: current, to: (current + k) % n, label: `下一步：${prev} → ${(current + k) % n}` }],
         variables: [
           { name: '已保存的值', value: prev },
           { name: '现在所在索引', value: current },
